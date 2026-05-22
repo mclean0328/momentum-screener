@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Momentum Day Trading Screener</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <nav class="nav-links">
+        <a href="/" class="nav-link active">Screener</a>
+        <a href="/lookup" class="nav-link">Ticker Lookup</a>
+      </nav>
+      <h1>Momentum Day Trading Screener</h1>
+      <p class="subtitle">Finviz-powered scanner with news, charts &amp; ranked recommendations</p>
+      <button id="scan-btn" onclick="runScan()">Run Scan</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p>Scanning markets... this may take a few minutes.</p>
+    </div>
+
+    <div id="welcome" class="welcome-card">
+      <h2>Ready to scan</h2>
+      <p>Click <strong>Run Scan</strong> to screen for momentum day trading setups across 4 strategies: Gappers, Breakouts, Volatile Movers, and Unusual Volume.</p>
+    </div>
+
+    <div id="results" class="hidden">
+      <!-- Screen summary cards -->
+      <section id="screens-section">
+        <h2>Screener Results</h2>
+        <div id="screen-cards" class="screen-grid"></div>
+      </section>
+
+      <!-- Summary stats -->
+      <section id="summary-section">
+        <div class="summary-bar">
+          <div class="stat"><span id="stat-total" class="stat-num">0</span><span class="stat-label">Total</span></div>
+          <div class="stat high"><span id="stat-high" class="stat-num">0</span><span class="stat-label">High</span></div>
+          <div class="stat medium"><span id="stat-med" class="stat-num">0</span><span class="stat-label">Medium</span></div>
+          <div class="stat low"><span id="stat-low" class="stat-num">0</span><span class="stat-label">Low</span></div>
+        </div>
+      </section>
+
+      <!-- Interactive Charts -->
+      <section id="charts-section" class="hidden">
+        <div class="charts-header">
+          <h2>Top 5 — Interactive Charts</h2>
+          <div class="period-buttons" id="global-period-btns">
+            <button class="period-btn" data-period="1d">1D</button>
+            <button class="period-btn" data-period="5d">5D</button>
+            <button class="period-btn active" data-period="1mo">1M</button>
+            <button class="period-btn" data-period="3mo">3M</button>
+            <button class="period-btn" data-period="6mo">6M</button>
+            <button class="period-btn" data-period="1y">1Y</button>
+          </div>
+        </div>
+        <div id="charts-grid" class="charts-grid"></div>
+      </section>
+
+      <!-- Tier sections -->
+      <section id="high-section" class="tier-section">
+        <h2 class="tier-header high">High Conviction</h2>
+        <div id="high-list" class="ticker-list"></div>
+      </section>
+
+      <section id="medium-section" class="tier-section hidden">
+        <h2 class="tier-header medium">Medium Conviction</h2>
+        <div id="medium-list" class="ticker-list"></div>
+      </section>
+
+      <section id="low-section" class="tier-section hidden">
+        <h2 class="tier-header low">Low Conviction</h2>
+        <div id="low-list" class="ticker-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

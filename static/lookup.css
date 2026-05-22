@@ -1,0 +1,236 @@
+/* Search */
+.search-section {
+  max-width: 700px;
+  margin: 0 auto 2rem;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-bar input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  font-size: 1rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-dim);
+}
+
+.search-bar input:focus {
+  border-color: var(--accent);
+}
+
+.search-bar button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.875rem 1.75rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.search-bar button:hover {
+  background: #651fff;
+}
+
+.search-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error */
+.error-card {
+  background: var(--red-bg);
+  border: 1px solid var(--red);
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  color: var(--red);
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+/* Company header */
+.company-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.company-title h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.company-name {
+  display: block;
+  font-size: 1rem;
+  color: var(--text-dim);
+}
+
+.company-industry {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
+
+.price-block {
+  text-align: right;
+}
+
+.price-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.price-change {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.price-change.positive { color: var(--green); }
+.price-change.negative { color: var(--red); }
+
+/* Chart */
+.lookup-chart-section {
+  margin-bottom: 2rem;
+}
+
+.lookup-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.lookup-chart-card .chart-container {
+  height: 420px;
+}
+
+/* Info grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.info-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.info-panel h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Metrics table */
+.metrics-table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.metric-row .label {
+  color: var(--text-dim);
+}
+
+.metric-row .value {
+  font-weight: 600;
+  text-align: right;
+}
+
+.metric-row .value.positive { color: var(--green); }
+.metric-row .value.negative { color: var(--red); }
+
+/* News list */
+.news-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.news-list .news-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.news-list .news-item:last-child {
+  border-bottom: none;
+}
+
+.news-list .news-item a {
+  color: var(--blue);
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  display: block;
+}
+
+.news-list .news-item a:hover {
+  color: #90caf9;
+  text-decoration: underline;
+}
+
+.news-list .news-meta {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-header {
+    flex-direction: column;
+  }
+
+  .price-block {
+    text-align: left;
+  }
+
+  .metrics-table {
+    grid-template-columns: 1fr;
+  }
+}
