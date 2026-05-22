@@ -16,14 +16,19 @@ async function runScan() {
 
   try {
     const resp = await fetch("/api/scan");
+    const ct = resp.headers.get("content-type") || "";
     if (!resp.ok) {
-      const ct = resp.headers.get("content-type") || "";
       if (ct.includes("application/json")) {
         const errData = await resp.json();
         alert("Scan failed: " + (errData.error || resp.statusText));
+        console.error("Scan error trace:", errData.trace);
       } else {
         alert("Scan failed: server returned " + resp.status + " — the scan may have timed out. Try again or use Ticker Lookup for individual stocks.");
       }
+      return;
+    }
+    if (!ct.includes("application/json")) {
+      alert("Scan failed: server returned an unexpected response. It may have timed out.");
       return;
     }
     const data = await resp.json();

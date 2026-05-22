@@ -376,39 +376,47 @@ def lookup():
 
 @app.route("/api/scan")
 def api_scan():
-    results = run_full_scan()
-    return jsonify(results)
+    try:
+        results = run_full_scan()
+        return jsonify(results)
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 
 @app.route("/api/lookup/<ticker>")
 def api_lookup(ticker: str):
-    symbol = ticker.upper().strip()
-    data = fetch_ticker_data(symbol)
-    if not data:
-        return jsonify({"error": f"Could not find data for {symbol}"}), 404
+    try:
+        symbol = ticker.upper().strip()
+        data = fetch_ticker_data(symbol)
+        if not data:
+            return jsonify({"error": f"Could not find data for {symbol}"}), 404
 
-    return jsonify({
-        "ticker": symbol,
-        "company": data.get("Company", ""),
-        "price": data.get("Price"),
-        "change": data.get("Change%"),
-        "rel_vol": data.get("Rel Vol"),
-        "rsi": data.get("RSI"),
-        "volume": data.get("Volume"),
-        "avg_volume": data.get("Avg Volume"),
-        "sma20": data.get("SMA20%"),
-        "sma50": data.get("SMA50%"),
-        "sma200": data.get("SMA200%"),
-        "short_float": data.get("Short Float%"),
-        "atr": data.get("ATR"),
-        "perf_week": data.get("Perf Week%"),
-        "perf_month": data.get("Perf Month%"),
-        "sector": data.get("Sector", ""),
-        "industry": data.get("Industry", ""),
-        "news": data.get("News", []),
-        "volume_fmt": fmt_number(data.get("Volume")),
-        "avg_volume_fmt": fmt_number(data.get("Avg Volume")),
-    })
+        return jsonify({
+            "ticker": symbol,
+            "company": data.get("Company", ""),
+            "price": data.get("Price"),
+            "change": data.get("Change%"),
+            "rel_vol": data.get("Rel Vol"),
+            "rsi": data.get("RSI"),
+            "volume": data.get("Volume"),
+            "avg_volume": data.get("Avg Volume"),
+            "sma20": data.get("SMA20%"),
+            "sma50": data.get("SMA50%"),
+            "sma200": data.get("SMA200%"),
+            "short_float": data.get("Short Float%"),
+            "atr": data.get("ATR"),
+            "perf_week": data.get("Perf Week%"),
+            "perf_month": data.get("Perf Month%"),
+            "sector": data.get("Sector", ""),
+            "industry": data.get("Industry", ""),
+            "news": data.get("News", []),
+            "volume_fmt": fmt_number(data.get("Volume")),
+            "avg_volume_fmt": fmt_number(data.get("Avg Volume")),
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 
 PERIOD_MAP = {
