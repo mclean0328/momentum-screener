@@ -25,6 +25,17 @@ async function searchTicker(ticker) {
 
   try {
     const resp = await fetch(`/api/lookup/${ticker}`);
+    if (!resp.ok) {
+      const ct = resp.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const errData = await resp.json();
+        errorMsg.textContent = errData.error || resp.statusText;
+      } else {
+        errorMsg.textContent = "Server returned " + resp.status + " — the request may have timed out. Try again.";
+      }
+      errorMsg.classList.remove("hidden");
+      return;
+    }
     const data = await resp.json();
 
     if (data.error) {
