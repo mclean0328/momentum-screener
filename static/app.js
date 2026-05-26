@@ -1,6 +1,7 @@
 let chartInstances = {};
 let chartTickers = [];
 let currentPeriod = "1mo";
+let allEntries = [];
 
 async function runScan() {
   const btn = document.getElementById("scan-btn");
@@ -42,6 +43,60 @@ async function runScan() {
   }
 }
 
+async function refreshData() {
+  const btn = document.getElementById("refresh-btn");
+  const scanBtn = document.getElementById("scan-btn");
+
+  btn.disabled = true;
+  scanBtn.disabled = true;
+  btn.textContent = "Refreshing...";
+
+  // Close slider if open
+  closeSlider();
+
+  // Destroy existing top-5 chart instances
+  for (const key in chartInstances) {
+    if (chartInstances[key] && chartInstances[key].chart) {
+      chartInstances[key].chart.remove();
+    }
+  }
+  chartInstances = {};
+
+  // Destroy inline chart instances
+  for (const key in inlineChartInstances) {
+    if (inlineChartInstances[key]) {
+      inlineChartInstances[key].remove();
+    }
+  }
+  inlineChartInstances = {};
+
+  try {
+    const resp = await fetch("/api/scan");
+    const ct = resp.headers.get("content-type") || "";
+    if (!resp.ok) {
+      if (ct.includes("application/json")) {
+        const errData = await resp.json();
+        alert("Refresh failed: " + (errData.error || resp.statusText));
+      } else {
+        alert("Refresh failed: server returned " + resp.status + ". Try again.");
+      }
+      return;
+    }
+    if (!ct.includes("application/json")) {
+      alert("Refresh failed: unexpected server response.");
+      return;
+    }
+    const data = await resp.json();
+    renderResults(data);
+  } catch (err) {
+    alert("Refresh failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    scanBtn.disabled = false;
+    btn.textContent = "↻ Refresh";
+  }
+}
+
 function fmtNumber(val) {
   if (val == null) return "-";
   if (Math.abs(val) >= 1e9) return (val / 1e9).toFixed(1) + "B";
@@ -52,6 +107,11 @@ function fmtNumber(val) {
 
 function renderResults(data) {
   const results = document.getElementById("results");
+  allEntries = data.entries || [];
+
+  // Show refresh button after first successful scan
+  document.getElementById("refresh-btn").classList.remove("hidden");
+
 
   // Screen cards
   const screenCards = document.getElementById("screen-cards");
@@ -102,24 +162,32 @@ function initCharts(entries) {
   grid.innerHTML = "";
   chartInstances = {};
 
-  for (const e of entries) {
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    const isHero = i === 0;
     const card = document.createElement("div");
-    card.className = "chart-card";
+    card.className = "chart-card" + (isHero ? " chart-card-hero" : "");
     card.id = `chart-card-${e.ticker}`;
 
     const changeStr = e.change != null ? (e.change >= 0 ? "+" : "") + e.change.toFixed(1) + "%" : "";
     const rvolStr = e.rel_vol != null ? "RVol " + e.rel_vol.toFixed(1) + "x" : "";
     const scoreStr = "Score: " + Math.round(e.score);
+    const tierBadge = `<span class="tier-badge high" style="margin-left:0.5rem">#1</span>`;
 
     card.innerHTML = `
       <div class="chart-card-header">
-        <h3>${escapeHtml(e.ticker)} <span style="font-weight:400;color:var(--text-dim);font-size:0.85rem">${escapeHtml(e.company)}</span></h3>
+        <h3>${escapeHtml(e.ticker)} <span style="font-weight:400;color:var(--text-dim);font-size:0.85rem">${escapeHtml(e.company)}</span>${isHero ? tierBadge : ""}</h3>
         <span class="chart-subtitle">${changeStr}  ${rvolStr}  ${scoreStr}</span>
       </div>
-      <div class="chart-container" id="chart-${e.ticker}">
+      <div class="chart-container${isHero ? " chart-container-hero" : ""}" id="chart-${e.ticker}">
         <div class="chart-loading">Loading chart...</div>
       </div>`;
     grid.appendChild(card);
+
+    // Click header to open slide-out detail panel
+    const header = card.querySelector(".chart-card-header");
+    header.style.cursor = "pointer";
+    header.addEventListener("click", () => openSlider(e.ticker));
   }
 
   // Setup period buttons
@@ -165,13 +233,16 @@ async function loadChart(ticker) {
 
     container.innerHTML = "";
 
+    const isHero = container.classList.contains("chart-container-hero");
+    const chartHeight = isHero ? 500 : 350;
+
     const chart = LightweightCharts.createChart(container, {
       width: container.clientWidth,
-      height: 350,
+      height: chartHeight,
       layout: {
         background: { type: "solid", color: "#1a1d27" },
         textColor: "#8b8fa3",
-        fontSize: 11,
+        fontSize: isHero ? 12 : 11,
       },
       grid: {
         vertLines: { color: "#2e334133" },
@@ -215,7 +286,7 @@ async function loadChart(ticker) {
     if (data.sma5 && data.sma5.length > 0) {
       const sma5Series = chart.addLineSeries({
         color: "#ffeb3b",
-        lineWidth: 1,
+        lineWidth: isHero ? 2 : 1,
         priceLineVisible: false,
         lastValueVisible: false,
       });
@@ -225,7 +296,7 @@ async function loadChart(ticker) {
     if (data.sma20 && data.sma20.length > 0) {
       const sma20Series = chart.addLineSeries({
         color: "#42a5f5",
-        lineWidth: 1,
+        lineWidth: isHero ? 2 : 1,
         priceLineVisible: false,
         lastValueVisible: false,
       });
@@ -514,4 +585,117 @@ function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ---------------------------------------------------------------------------
+// Slide-out detail panel
+// ---------------------------------------------------------------------------
+function openSlider(ticker) {
+  const entry = allEntries.find(e => e.ticker === ticker);
+  if (!entry) return;
+
+  const panel = document.getElementById("slider-panel");
+  const overlay = document.getElementById("slider-overlay");
+
+  // Highlight selected card
+  document.querySelectorAll(".chart-card.selected").forEach(c => c.classList.remove("selected"));
+  const card = document.getElementById(`chart-card-${ticker}`);
+  if (card) card.classList.add("selected");
+
+  // Populate header
+  document.getElementById("slider-symbol").textContent = entry.ticker;
+  document.getElementById("slider-company").textContent = entry.company || "";
+  document.getElementById("slider-industry").textContent =
+    [entry.sector, entry.industry].filter(Boolean).join(" / ");
+
+  // Price + change
+  const priceEl = document.getElementById("slider-price");
+  priceEl.textContent = entry.price != null ? "$" + entry.price.toFixed(2) : "-";
+
+  const changeEl = document.getElementById("slider-change");
+  if (entry.change != null) {
+    const sign = entry.change >= 0 ? "+" : "";
+    changeEl.textContent = sign + entry.change.toFixed(2) + "%";
+    changeEl.className = "slider-change " + (entry.change >= 0 ? "positive" : "negative");
+  } else {
+    changeEl.textContent = "-";
+    changeEl.className = "slider-change";
+  }
+
+  // Score + tier
+  document.getElementById("slider-score").textContent = Math.round(entry.score);
+  const tierEl = document.getElementById("slider-tier");
+  tierEl.textContent = entry.tier;
+  tierEl.className = "tier-badge " + entry.tier.toLowerCase();
+
+  // Recommendation
+  document.getElementById("slider-rec").textContent = entry.recommendation || "";
+
+  // Metrics
+  const fmtPct = (v) => v != null ? (v >= 0 ? "+" : "") + v.toFixed(2) + "%" : "-";
+  const pctCls = (v) => v != null ? (v >= 0 ? "positive" : "negative") : "";
+
+  const metrics = [
+    { label: "Price", value: entry.price != null ? "$" + entry.price.toFixed(2) : "-" },
+    { label: "Change", value: fmtPct(entry.change), cls: pctCls(entry.change) },
+    { label: "Volume", value: entry.volume_fmt || "-" },
+    { label: "Avg Volume", value: fmtNumber(entry.avg_volume) },
+    { label: "Rel Volume", value: entry.rel_vol != null ? entry.rel_vol.toFixed(1) + "x" : "-" },
+    { label: "RSI (14)", value: entry.rsi != null ? Math.round(entry.rsi) : "-" },
+    { label: "SMA20", value: fmtPct(entry.sma20), cls: pctCls(entry.sma20) },
+    { label: "Short Float", value: entry.short_float != null ? entry.short_float.toFixed(1) + "%" : "-" },
+    { label: "Sector", value: entry.sector || "-" },
+    { label: "Industry", value: entry.industry || "-" },
+    { label: "Screens Hit", value: entry.screen_count + " / 4" },
+    { label: "Score", value: Math.round(entry.score) },
+  ];
+
+  document.getElementById("slider-metrics").innerHTML = metrics.map(m =>
+    `<div class="slider-metric">
+      <span class="label">${m.label}</span>
+      <span class="value ${m.cls || ''}">${m.value}</span>
+    </div>`
+  ).join("");
+
+  // News
+  const newsEl = document.getElementById("slider-news");
+  if (entry.news && entry.news.length > 0) {
+    newsEl.innerHTML = entry.news.map(n => {
+      const linkHtml = n.link
+        ? `<a href="${escapeHtml(n.link)}" target="_blank" rel="noopener">${escapeHtml(n.title)}</a>`
+        : `<span>${escapeHtml(n.title)}</span>`;
+      return `<div class="news-item">
+        ${linkHtml}
+        <div class="news-meta">${escapeHtml(n.date)} &middot; ${escapeHtml(n.source)}</div>
+      </div>`;
+    }).join("");
+  } else {
+    newsEl.innerHTML = '<div class="news-item" style="color:var(--text-dim);padding:0.5rem 0">No recent news found.</div>';
+  }
+
+  // Open
+  overlay.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    panel.classList.add("open");
+  });
+
+  // Close on Escape
+  document.addEventListener("keydown", sliderEscHandler);
+}
+
+function closeSlider() {
+  const panel = document.getElementById("slider-panel");
+  const overlay = document.getElementById("slider-overlay");
+
+  panel.classList.remove("open");
+  setTimeout(() => {
+    overlay.classList.add("hidden");
+  }, 300);
+
+  document.querySelectorAll(".chart-card.selected").forEach(c => c.classList.remove("selected"));
+  document.removeEventListener("keydown", sliderEscHandler);
+}
+
+function sliderEscHandler(e) {
+  if (e.key === "Escape") closeSlider();
 }
