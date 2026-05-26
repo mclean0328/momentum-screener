@@ -317,6 +317,21 @@ function renderTierList(tier, entries) {
         </div>
       </div>
       <div class="ticker-rec">${escapeHtml(e.recommendation)}</div>
+      <div class="ticker-inline-chart hidden" id="inline-chart-wrap-${escapeHtml(e.ticker)}">
+        <div class="inline-chart-header">
+          <div class="period-buttons inline-period-btns" data-ticker="${escapeHtml(e.ticker)}">
+            <button class="period-btn" data-period="1d">1D</button>
+            <button class="period-btn active" data-period="5d">5D</button>
+            <button class="period-btn" data-period="1mo">1M</button>
+            <button class="period-btn" data-period="3mo">3M</button>
+            <button class="period-btn" data-period="6mo">6M</button>
+            <button class="period-btn" data-period="1y">1Y</button>
+          </div>
+        </div>
+        <div class="chart-container inline-chart-container" id="inline-chart-${escapeHtml(e.ticker)}">
+          <div class="chart-loading">Loading chart...</div>
+        </div>
+      </div>
       <div class="ticker-detail">
         <div class="detail-grid">
           <div class="news-section">
@@ -336,7 +351,10 @@ function renderTierList(tier, entries) {
           </div>
         </div>
       </div>
-      <button class="toggle-btn" onclick="toggleCard(this)">Show details &amp; news</button>`;
+      <div class="ticker-btn-row">
+        <button class="toggle-btn chart-toggle-btn" onclick="toggleInlineChart(this, '${escapeHtml(e.ticker)}')">Show Chart</button>
+        <button class="toggle-btn" onclick="toggleCard(this)">Show Details &amp; News</button>
+      </div>`;
 
     list.appendChild(card);
   }
@@ -345,7 +363,150 @@ function renderTierList(tier, entries) {
 function toggleCard(btn) {
   const card = btn.closest(".ticker-card");
   card.classList.toggle("expanded");
-  btn.textContent = card.classList.contains("expanded") ? "Hide details" : "Show details & news";
+  btn.textContent = card.classList.contains("expanded") ? "Hide Details" : "Show Details & News";
+}
+
+// ---------------------------------------------------------------------------
+// Inline per-ticker charts
+// ---------------------------------------------------------------------------
+let inlineChartInstances = {};
+let inlineChartPeriods = {};
+
+function toggleInlineChart(btn, ticker) {
+  const wrap = document.getElementById(`inline-chart-wrap-${ticker}`);
+  const isVisible = !wrap.classList.contains("hidden");
+
+  if (isVisible) {
+    wrap.classList.add("hidden");
+    btn.textContent = "Show Chart";
+    // Destroy chart to free memory
+    if (inlineChartInstances[ticker]) {
+      inlineChartInstances[ticker].remove();
+      delete inlineChartInstances[ticker];
+    }
+    return;
+  }
+
+  wrap.classList.remove("hidden");
+  btn.textContent = "Hide Chart";
+
+  if (!inlineChartPeriods[ticker]) {
+    inlineChartPeriods[ticker] = "5d";
+  }
+
+  // Wire up period buttons for this ticker
+  const btnGroup = wrap.querySelector(".inline-period-btns");
+  btnGroup.querySelectorAll(".period-btn").forEach(pbtn => {
+    const clone = pbtn.cloneNode(true);
+    pbtn.parentNode.replaceChild(clone, pbtn);
+    clone.addEventListener("click", () => {
+      btnGroup.querySelectorAll(".period-btn").forEach(b => b.classList.remove("active"));
+      clone.classList.add("active");
+      inlineChartPeriods[ticker] = clone.dataset.period;
+      loadInlineChart(ticker);
+    });
+  });
+
+  loadInlineChart(ticker);
+}
+
+async function loadInlineChart(ticker) {
+  const container = document.getElementById(`inline-chart-${ticker}`);
+  if (!container) return;
+
+  const period = inlineChartPeriods[ticker] || "5d";
+
+  if (inlineChartInstances[ticker]) {
+    inlineChartInstances[ticker].remove();
+    delete inlineChartInstances[ticker];
+  }
+
+  container.innerHTML = '<div class="chart-loading">Loading chart...</div>';
+
+  try {
+    const resp = await fetch(`/api/chart/${ticker}?period=${period}`);
+    const data = await resp.json();
+    if (data.error) {
+      container.innerHTML = `<div class="chart-loading">${escapeHtml(data.error)}</div>`;
+      return;
+    }
+
+    container.innerHTML = "";
+
+    const chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 350,
+      layout: {
+        background: { type: "solid", color: "#1a1d27" },
+        textColor: "#8b8fa3",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "#2e334133" },
+        horzLines: { color: "#2e334133" },
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        vertLine: { color: "#7c4dff66", width: 1, style: 2 },
+        horzLine: { color: "#7c4dff66", width: 1, style: 2 },
+      },
+      rightPriceScale: { borderColor: "#2e3341" },
+      timeScale: {
+        borderColor: "#2e3341",
+        timeVisible: period === "1d" || period === "5d",
+        secondsVisible: false,
+      },
+      handleScroll: { vertTouchDrag: false },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: "#26a69a",
+      downColor: "#ef5350",
+      borderUpColor: "#26a69a",
+      borderDownColor: "#ef5350",
+      wickUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
+    });
+    candleSeries.setData(data.candles);
+
+    const volumeSeries = chart.addHistogramSeries({
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+    });
+    volumeSeries.setData(data.volumes);
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    if (data.sma5 && data.sma5.length > 0) {
+      const sma5Series = chart.addLineSeries({
+        color: "#ffeb3b", lineWidth: 1,
+        priceLineVisible: false, lastValueVisible: false,
+      });
+      sma5Series.setData(data.sma5);
+    }
+
+    if (data.sma20 && data.sma20.length > 0) {
+      const sma20Series = chart.addLineSeries({
+        color: "#42a5f5", lineWidth: 1,
+        priceLineVisible: false, lastValueVisible: false,
+      });
+      sma20Series.setData(data.sma20);
+    }
+
+    chart.timeScale().fitContent();
+    inlineChartInstances[ticker] = chart;
+
+    const resizeHandler = () => {
+      if (inlineChartInstances[ticker]) {
+        chart.applyOptions({ width: container.clientWidth });
+      }
+    };
+    window.addEventListener("resize", resizeHandler);
+
+  } catch (err) {
+    container.innerHTML = '<div class="chart-loading">Failed to load chart</div>';
+  }
 }
 
 function escapeHtml(str) {

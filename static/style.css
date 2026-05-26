@@ -515,6 +515,38 @@ main {
   color: var(--text-dim);
 }
 
+/* Inline per-ticker chart */
+.ticker-inline-chart {
+  border-top: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+}
+
+.inline-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.inline-chart-container {
+  height: 350px;
+}
+
+/* Button row */
+.ticker-btn-row {
+  display: flex;
+  border-top: 1px solid var(--border);
+}
+
+.ticker-btn-row .toggle-btn {
+  flex: 1;
+  border-top: none;
+}
+
+.ticker-btn-row .toggle-btn + .toggle-btn {
+  border-left: 1px solid var(--border);
+}
+
 /* Toggle button */
 .toggle-btn {
   background: none;
@@ -526,11 +558,16 @@ main {
   width: 100%;
   text-align: center;
   border-top: 1px solid var(--border);
+  transition: all 0.15s;
 }
 
 .toggle-btn:hover {
   color: var(--text);
   background: var(--surface2);
+}
+
+.chart-toggle-btn.active-chart {
+  color: var(--accent);
 }
 
 /* Responsive */
